@@ -33,12 +33,12 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: sudo-app-release-unsigned
-        path: app/build/outputs/apk/release/app-release-unsigned.apk
+        name: sudo-app-release
+        path: app/build/outputs/apk/release/app-release.apk
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: app/build/outputs/apk/release/app-release-unsigned.apk
+        files: app/build/outputs/apk/release/app-release.apk
         generate_release_notes: true
