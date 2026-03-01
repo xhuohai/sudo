@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary colors - linux.do inspired dark theme -->
+    <color name="primary">#2D2D2D</color>
+    <color name="primary_variant">#1A1A1A</color>
+    <color name="on_primary">#FFFFFF</color>
+    
+    <!-- Secondary colors - terminal green accent -->
+    <color name="secondary">#4EC9B0</color>
+    <color name="secondary_variant">#3BA08A</color>
+    <color name="on_secondary">#000000</color>
+    
+    <!-- Background colors -->
+    <color name="background">#FAFAFA</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="error">#B00020</color>
+    
+    <!-- Text colors -->
+    <color name="on_background">#1A1A1A</color>
+    <color name="on_surface">#1A1A1A</color>
+    <color name="on_error">#FFFFFF</color>
+    
+    <!-- Splash screen - terminal dark -->
+    <color name="splash_background">#1E1E1E</color>
+    
+    <!-- Icon colors - terminal dark -->
+    <color name="ic_launcher_background">#1E1E1E</color>
+</resources>

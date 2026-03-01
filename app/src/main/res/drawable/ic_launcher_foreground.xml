@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108"
+    android:tint="#FFFFFF">
+  <group android:scaleX="0.65"
+      android:scaleY="0.65"
+      android:translateX="18.9"
+      android:translateY="18.9">
+    <!-- Terminal prompt style for "sudo" -->
+    <!-- $ symbol -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M25,35 L25,48 L40,48 L40,55 L25,55 L25,68 L55,68 L55,60 L35,60 L35,55 L55,55 L55,48 L35,48 L35,43 L55,43 L55,35 Z"/>
+    <!-- > cursor symbol -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M60,35 L60,68 L70,68 L70,55 L82,68 L95,68 L78,51.5 L95,35 L82,35 L70,48 L70,35 Z"/>
+  </group>
+</vector>

@@ -1,0 +1,24 @@
+*.iml
+.gradle
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# Log Files
+*.log
+
+# Keystore files
+*.jks
+*.keystore
+
+# NDK
+obj/
+
+# build
+build/
+app/build/
+**/build/

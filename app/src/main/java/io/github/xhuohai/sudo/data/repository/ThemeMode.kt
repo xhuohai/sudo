@@ -1,0 +1,10 @@
+package io.github.xhuohai.sudo.data.repository
+
+/**
+ * Theme mode options for the app.
+ */
+enum class ThemeMode {
+    SYSTEM,  // 跟随系统
+    LIGHT,   // 浅色模式
+    DARK     // 深色模式
+}

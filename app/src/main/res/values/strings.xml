@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">sudo</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">首页</string>
+    <string name="nav_categories">板块</string>
+    <string name="nav_messages">消息</string>
+    <string name="nav_profile">我的</string>
+    
+    <!-- Actions -->
+    <string name="action_search">搜索</string>
+    <string name="action_refresh">刷新</string>
+    <string name="action_share">分享</string>
+    <string name="action_bookmark">收藏</string>
+    <string name="action_reply">回复</string>
+    <string name="action_login">登录</string>
+    <string name="action_logout">退出登录</string>
+    <string name="action_retry">重试</string>
+    
+    <!-- States -->
+    <string name="state_loading">加载中…</string>
+    <string name="state_empty">暂无内容</string>
+    <string name="state_error">加载失败</string>
+    <string name="state_not_logged_in">未登录</string>
+    
+    <!-- Topic tabs -->
+    <string name="tab_latest">最新</string>
+    <string name="tab_top">热门</string>
+    <string name="tab_new">新帖</string>
+    
+    <!-- Profile -->
+    <string name="profile_view">查看个人资料</string>
+    <string name="profile_login_hint">点击登录</string>
+    <string name="menu_history">浏览历史</string>
+    <string name="menu_bookmarks">我的收藏</string>
+    <string name="menu_dark_mode">深色模式</string>
+    <string name="menu_settings">系统设置</string>
+    <string name="menu_help">帮助与反馈</string>
+    <string name="menu_about">关于</string>
+    
+    <!-- Messages -->
+    <string name="messages_empty">暂无消息</string>
+    <string name="messages_login_hint">登录后可查看消息通知</string>
+    
+    <!-- Content descriptions -->
+    <string name="cd_avatar">用户头像</string>
+    <string name="cd_topic_image">帖子图片</string>
+    <string name="cd_pinned">置顶</string>
+</resources>
