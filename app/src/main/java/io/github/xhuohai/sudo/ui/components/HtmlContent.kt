@@ -61,7 +61,8 @@ sealed class ContentBlock {
     ) : ContentBlock()
     data class QuoteBlock(
         val content: String,
-        val username: String
+        val username: String,
+        val rawHtml: String = ""
     ) : ContentBlock()
     data class EmojiBlock(
         val url: String,
@@ -229,7 +230,7 @@ fun parseHtmlToBlocks(html: String): List<ContentBlock> {
             // Use cleanTextBlock to convert HTML to Markdown (preserving links, bold, etc.)
             val textContent = cleanTextBlock(cleanContent)
             
-            quotes.add(ContentBlock.QuoteBlock(textContent, username))
+            quotes.add(ContentBlock.QuoteBlock(textContent, username, cleanContent))
             quoteReplacements.add(Triple(quoteMatcher.start(), quoteMatcher.end(), "%%QUOTE_${quoteIndex}%%"))
             quoteIndex++
         }
@@ -256,7 +257,7 @@ fun parseHtmlToBlocks(html: String): List<ContentBlock> {
         val textContent = cleanTextBlock(content)
         
         // Add as QuoteBlock with empty username
-        quotes.add(ContentBlock.QuoteBlock(textContent, ""))
+        quotes.add(ContentBlock.QuoteBlock(textContent, "", content))
         blockquoteReplacements.add(Triple(blockquoteMatcher.start(), blockquoteMatcher.end(), "%%QUOTE_${quoteIndex}%%"))
         quoteIndex++
     }
@@ -821,6 +822,7 @@ fun HtmlContent(
                         block = block,
                         textStyle = textStyle,
                         textColor = textColor,
+                        onImageClick = onImageClick,
                         onLinkClick = onLinkClick
                     )
                 }
@@ -835,6 +837,7 @@ private fun QuoteBlockView(
     textStyle: TextStyle,
     textColor: Color,
     modifier: Modifier = Modifier,
+    onImageClick: (List<String>, Int) -> Unit = { _, _ -> },
     onLinkClick: ((String) -> Unit)? = null
 ) {
     Row(
@@ -868,12 +871,22 @@ private fun QuoteBlockView(
             }
             
             // Content
-            RichTextContent(
-                text = block.content,
-                style = textStyle,
-                color = textColor,
-                onLinkClick = onLinkClick
-            )
+            if (block.rawHtml.isNotEmpty()) {
+                HtmlContent(
+                    html = block.rawHtml,
+                    textStyle = textStyle,
+                    textColor = textColor,
+                    onImageClick = onImageClick,
+                    onLinkClick = onLinkClick
+                )
+            } else {
+                RichTextContent(
+                    text = block.content,
+                    style = textStyle,
+                    color = textColor,
+                    onLinkClick = onLinkClick
+                )
+            }
         }
     }
 }
