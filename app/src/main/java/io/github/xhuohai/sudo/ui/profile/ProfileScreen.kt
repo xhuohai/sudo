@@ -117,9 +117,13 @@ fun ProfileScreen(
                     modifier = Modifier.padding(20.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (uiState.avatarUrl != null) {
+                    val avatar = uiState.avatarUrl
+                    if (avatar != null) {
+                        val finalAvatarUrl = avatar.replace("{size}", "120")
+                            .let { if (it.startsWith("http")) it else "https://linux.do\$it" }
+                        
                         AsyncImage(
-                            model = uiState.avatarUrl,
+                            model = finalAvatarUrl,
                             contentDescription = "Avatar",
                             modifier = Modifier
                                 .size(64.dp)
@@ -241,14 +245,6 @@ fun ProfileScreen(
                     icon = Icons.Default.Settings,
                     title = "系统设置",
                     onClick = onSettingsClick
-                )
-                ProfileMenuRow(
-                    icon = Icons.AutoMirrored.Filled.HelpOutline,
-                    title = "帮助与反馈",
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://linux.do/c/feedback/45"))
-                        context.startActivity(intent)
-                    }
                 )
             }
         }

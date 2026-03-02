@@ -181,7 +181,8 @@ interface DiscourseApi {
 
     @GET("session/current.json")
     suspend fun getCurrentSession(
-        @Header("Cookie") cookie: String
+        @Header("Cookie") cookie: String,
+        @Header("X-Requested-With") requestedWith: String = "XMLHttpRequest"
     ): retrofit2.Response<io.github.xhuohai.sudo.data.model.CurrentSessionResponse>
 }
 

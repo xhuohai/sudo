@@ -78,6 +78,7 @@ class TopicRepository @Inject constructor(
             )
             Result.success(Pair(response.topicList.topics, response.users))
         } catch (e: Exception) {
+            android.util.Log.e("TopicRepository", "Error fetching bookmarks for $username", e)
             Result.failure(e)
         }
     }
@@ -93,6 +94,7 @@ class TopicRepository @Inject constructor(
             val users = response.userActions.map { it.toUser() }.distinctBy { it.id }
             Result.success(Pair(topics, users))
         } catch (e: Exception) {
+            android.util.Log.e("TopicRepository", "Error fetching posts for $username", e)
             Result.failure(e)
         }
     }

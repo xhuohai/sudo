@@ -589,13 +589,15 @@ private fun cleanTextBlock(html: String): String {
     text = text.replace(Regex("""<a[^>]*class="mention[^"]*"[^>]*>(@[^<]+)</a>""")) { it.groupValues[1] }
     
     // Convert links to markdown format
-    text = text.replace(Regex("""<a[^>]*href="([^"]+)"[^>]*>([^<]*)</a>""")) { matchResult ->
+    text = text.replace(Regex("""<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)</a>""")) { matchResult ->
         val url = matchResult.groupValues[1]
-        val linkText = matchResult.groupValues[2]
-        if (linkText.isNotBlank() && !url.contains("user-card") && !linkText.contains("@")) {
-            "[$linkText]($url)"
-        } else {
+        val linkText = matchResult.groupValues[2].trim()
+        
+        // Skip user mentions, empty links, and quote/lightbox image tags
+        if (linkText.isBlank() || linkText.contains("@") || url.contains("user-card") || linkText == "[image]" || linkText.contains("<img")) {
             linkText
+        } else {
+            "[$linkText]($url)"
         }
     }
     

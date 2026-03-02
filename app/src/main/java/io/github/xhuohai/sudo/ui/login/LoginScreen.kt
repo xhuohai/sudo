@@ -203,7 +203,6 @@ private fun LoginWebView(
                                                     if (href) {
                                                         var match = href.match(/\/u\/([^\/]+)/);
                                                         if (match) return match[1];
-                                                        return href;
                                                     }
                                                 }
                                             }
