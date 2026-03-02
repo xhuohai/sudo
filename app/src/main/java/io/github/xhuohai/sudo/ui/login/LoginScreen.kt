@@ -130,8 +130,9 @@ private fun LoginWebView(
                     displayZoomControls = false
                     // Important: Allow third-party cookies for OAuth
                     mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                    // User agent to appear as a normal browser
-                    userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+                    val release = android.os.Build.VERSION.RELEASE
+                    val model = android.os.Build.MODEL
+                    userAgentString = "Mozilla/5.0 (Linux; Android $release; $model) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
                 }
 
                 // Enable third-party cookies

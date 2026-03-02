@@ -175,7 +175,8 @@ interface DiscourseApi {
         @Query("offset") offset: Int = 0,
         @Query("username") username: String,
         @Query("filter") filter: String = "4,5",
-        @Header("Cookie") cookie: String? = null
+        @Header("Cookie") cookie: String? = null,
+        @Header("X-Requested-With") requestedWith: String = "XMLHttpRequest"
     ): io.github.xhuohai.sudo.data.model.UserActionsResponse
 
     @GET("session/current.json")
