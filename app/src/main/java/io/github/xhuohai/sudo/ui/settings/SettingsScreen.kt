@@ -75,7 +75,6 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val themeMode by viewModel.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
     var notificationsEnabled by remember { mutableStateOf(true) }
-    var dynamicColorEnabled by remember { mutableStateOf(true) }
     var showAboutDialog by remember { mutableStateOf(false) }
     var showLicensesDialog by remember { mutableStateOf(false) }
     var showClearCacheDialog by remember { mutableStateOf(false) }
@@ -303,16 +302,6 @@ fun SettingsScreen(
                     },
                     onClick = { showThemeModeDialog = true }
                 )
-                SettingsSwitchItem(
-                    icon = Icons.Default.Palette,
-                    title = "动态取色",
-                    subtitle = "使用壁纸颜色作为主题色",
-                    checked = dynamicColorEnabled,
-                    onCheckedChange = { 
-                        dynamicColorEnabled = it 
-                        Toast.makeText(context, "将在下次启动时生效", Toast.LENGTH_SHORT).show()
-                    }
-                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -367,7 +356,7 @@ fun SettingsScreen(
                     title = "反馈问题",
                     subtitle = "报告 bug 或提出建议",
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://linux.do"))
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/xhuohai/sudo/issues"))
                         context.startActivity(intent)
                     }
                 )

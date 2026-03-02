@@ -67,8 +67,6 @@ fun MessagesScreen(
     viewModel: MessagesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var selectedTab by remember { mutableIntStateOf(1) } // Default to Private Messages (index 1)
-    val tabs = listOf("通知", "私信")
 
     Scaffold(
         topBar = {
@@ -80,30 +78,19 @@ fun MessagesScreen(
                         fontWeight = FontWeight.Bold
                     )
                 },
-                actions = {
-                    if (selectedTab == 0) {
-                        IconButton(onClick = { /* viewModel.markAllRead() */ }) {
-                            Icon(
-                                imageVector = Icons.Default.MarkEmailRead,
-                                contentDescription = "全部标为已读"
-                            )
-                        }
-                    }
-                },
+
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
         floatingActionButton = {
-            if (selectedTab == 1) {
-                FloatingActionButton(
-                    onClick = onCreatePMClick,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "发私信")
-                }
+            FloatingActionButton(
+                onClick = onCreatePMClick,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "发私信")
             }
         }
     ) { innerPadding ->
@@ -112,26 +99,7 @@ fun MessagesScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Tabs
-            TabRow(selectedTabIndex = selectedTab) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = { Text(title) }
-                    )
-                }
-            }
-
-            if (selectedTab == 0) {
-                // Notifications (Placeholder)
-                EmptyListView(
-                    icon = Icons.Default.NotificationsNone,
-                    title = "暂无通知",
-                    description = "通知功能开发中..."
-                )
-            } else {
-                // Private Messages
+            // Private Messages
                 if (!uiState.isLoggedIn) {
                     EmptyListView(
                         icon = Icons.Default.NotificationsNone,
@@ -207,7 +175,6 @@ fun MessagesScreen(
                         }
                     }
                 }
-            }
         }
     }
 }

@@ -29,6 +29,8 @@ android {
             storePassword = "password"
             keyAlias = "release"
             keyPassword = "password"
+            enableV1Signing = true
+            enableV2Signing = true
         }
     }
 

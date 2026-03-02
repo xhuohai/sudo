@@ -177,6 +177,11 @@ interface DiscourseApi {
         @Query("filter") filter: String = "4,5",
         @Header("Cookie") cookie: String? = null
     ): io.github.xhuohai.sudo.data.model.UserActionsResponse
+
+    @GET("session/current.json")
+    suspend fun getCurrentSession(
+        @Header("Cookie") cookie: String
+    ): retrofit2.Response<io.github.xhuohai.sudo.data.model.CurrentSessionResponse>
 }
 
 @kotlinx.serialization.Serializable

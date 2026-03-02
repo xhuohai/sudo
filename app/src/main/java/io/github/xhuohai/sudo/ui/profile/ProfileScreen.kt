@@ -73,46 +73,7 @@ fun ProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    var showAboutDialog by remember { mutableStateOf(false) }
     var isDarkMode by remember { mutableStateOf(false) }
-
-    // About dialog
-    if (showAboutDialog) {
-        AlertDialog(
-            onDismissRequest = { showAboutDialog = false },
-            title = { Text("关于 sudo") },
-            text = {
-                Column {
-                    Text(
-                        text = "sudo",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "sudo read linux.do",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("版本: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Linux.do 社区非官方客户端")
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "基于 Jetpack Compose 和 Material Design 3 构建",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showAboutDialog = false }) {
-                    Text("确定")
-                }
-            }
-        )
-    }
 
     Column(
         modifier = Modifier
@@ -288,11 +249,6 @@ fun ProfileScreen(
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://linux.do/c/feedback/45"))
                         context.startActivity(intent)
                     }
-                )
-                ProfileMenuRow(
-                    icon = Icons.Default.Info,
-                    title = "关于",
-                    onClick = { showAboutDialog = true }
                 )
             }
         }
