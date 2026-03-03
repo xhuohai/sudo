@@ -37,11 +37,10 @@ object NetworkModule {
             .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val original = chain.request()
-                val release = android.os.Build.VERSION.RELEASE
-                val model = android.os.Build.MODEL
+                val defaultUserAgent = System.getProperty("http.agent") ?: "Mozilla/5.0 (Linux; Android \${android.os.Build.VERSION.RELEASE}; \${android.os.Build.MODEL}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                 val request = original.newBuilder()
                     .header("Accept", "application/json")
-                    .header("User-Agent", "Mozilla/5.0 (Linux; Android \$release; \$model) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                    .header("User-Agent", defaultUserAgent)
                     .method(original.method, original.body)
                     .build()
                 chain.proceed(request)
