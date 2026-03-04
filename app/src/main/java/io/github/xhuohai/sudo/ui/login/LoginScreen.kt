@@ -164,6 +164,11 @@ private fun LoginWebView(
                     override fun onProgressChanged(view: WebView?, newProgress: Int) {
                         onProgressChange(newProgress)
                     }
+
+                    override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
+                        android.util.Log.e("WebViewConsole", "\${consoleMessage?.message()} -- From line \${consoleMessage?.lineNumber()} of \${consoleMessage?.sourceId()}")
+                        return super.onConsoleMessage(consoleMessage)
+                    }
                 }
 
                 webViewClient = object : WebViewClient() {
@@ -199,20 +204,11 @@ private fun LoginWebView(
                             
                             if (cookies != null && cookies.contains("_t=")) {
                                 // Extract username via JS Bridge calling current.json natively
+                                // We do not need to fetch `/session/current.json` in JS (it causes 429 Too Many Requests).
+                                // We just need to signal Android that login succeeded, and rely on CookieManager to have the tokens.
                                 view?.evaluateJavascript(
                                     """
-                                    fetch('/session/current.json')
-                                        .then(res => res.json())
-                                        .then(data => {
-                                            if (data && data.current_user) {
-                                                AndroidBridge.onLoginData(data.current_user.username, data.current_user.avatar_template || "");
-                                            } else {
-                                                AndroidBridge.onLoginData("User", "");
-                                            }
-                                        })
-                                        .catch(e => {
-                                            AndroidBridge.onLoginData("User", "");
-                                        });
+                                    AndroidBridge.onLoginData("User", "");
                                     """.trimIndent(), null
                                 )
                             }
