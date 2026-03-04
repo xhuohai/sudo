@@ -37,7 +37,11 @@ object NetworkModule {
             .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val original = chain.request()
-                val defaultUserAgent = System.getProperty("http.agent") ?: "Mozilla/5.0 (Linux; Android \${android.os.Build.VERSION.RELEASE}; \${android.os.Build.MODEL}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                val release = android.os.Build.VERSION.RELEASE
+                val model = android.os.Build.MODEL
+                // We use a realistic Android Chrome User-Agent to bypass Cloudflare blocking Dalvik.
+                // We do NOT use the exact WebView version here because this is for API calls, not JS execution.
+                val defaultUserAgent = "Mozilla/5.0 (Linux; Android \$release; \$model) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
                 val request = original.newBuilder()
                     .header("Accept", "application/json")
                     .header("User-Agent", defaultUserAgent)

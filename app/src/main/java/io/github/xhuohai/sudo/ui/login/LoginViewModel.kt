@@ -17,25 +17,12 @@ class LoginViewModel @Inject constructor(
     private val api: DiscourseApi
 ) : ViewModel() {
 
-    suspend fun saveLoginInfo(cookie: String, fallbackUsername: String) {
-        // Run API call on IO dispatcher
-        val (finalUsername, avatarUrl) = withContext(Dispatchers.IO) {
-            try {
-                val response = api.getCurrentSession(cookie)
-                if (response.isSuccessful) {
-                    val user = response.body()?.currentUser
-                    if (user != null) {
-                        val avatarUrl = user.avatarTemplate?.replace("{size}", "120")
-                            ?.let { if (it.startsWith("http")) it else "https://linux.do\$it" }
-                        return@withContext Pair(user.username, avatarUrl)
-                    }
-                }
-                Pair(fallbackUsername, null)
-            } catch (e: Exception) {
-                Pair(fallbackUsername, null)
-            }
-        }
+    fun saveLoginInfo(cookie: String, username: String, avatarUrl: String) {
+        val finalAvatarUrl = avatarUrl.replace("{size}", "120")
+            .let { if (it.isNotBlank() && it.startsWith("http")) it else if (it.isNotBlank()) "https://linux.do\$it" else null }
         
-        authRepository.saveLoginInfo(cookie, finalUsername, avatarUrl)
+        viewModelScope.launch {
+            authRepository.saveLoginInfo(cookie, username, finalAvatarUrl)
+        }
     }
 }
