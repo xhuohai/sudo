@@ -24,6 +24,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.WrapText
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -81,6 +82,11 @@ sealed class ContentBlock {
         val siteIcon: String,
         val siteName: String
     ) : ContentBlock()
+    data class AlertBlock(
+        val type: String,
+        val text: String,
+        val html: String
+    ) : ContentBlock()
 }
 
 /**
@@ -89,6 +95,25 @@ sealed class ContentBlock {
 fun parseHtmlToBlocks(html: String): List<ContentBlock> {
     val blocks = mutableListOf<ContentBlock>()
     var text = html
+    
+    // Reverse Discourse optimization for large image quotes so they are parsed naturally as ImageBlocks
+    // Match [image], [图片], or any bracket-enclosed placeholder text inside <a> tags
+    text = text.replace(Regex("""<a[^>]*href="([^"]+)"[^>]*>\[(?:image|图片|圖片|imagen|imagem|Bild)\]</a>""")) { match ->
+        """<img src="${match.groupValues[1]}" />"""
+    }
+    // Also catch generic pattern: <a href="...">[ any short text ]</a> where href looks like an image URL
+    text = text.replace(Regex("""<a[^>]*href="([^"]*(?:\.(?:jpg|jpeg|png|gif|webp|svg|bmp))[^"]*)"[^>]*>\[[^\]]{1,10}\]</a>""", RegexOption.IGNORE_CASE)) { match ->
+        """<img src="${match.groupValues[1]}" />"""
+    }
+    
+    // Convert Obsidian-style callouts: <blockquote><p>[!type]<br>content</p></blockquote>
+    // Discourse on linux.do does NOT convert these to <div class="markdown-alert">.
+    // They remain as raw text like: <blockquote>\n<p>[!question]<br>\ncontent</p>\n</blockquote>
+    text = text.replace(Regex("""<blockquote>\s*<p>\[!(\w+)\](?:\s*<br\s*/?>)?\s*([\s\S]*?)</p>\s*</blockquote>""", RegexOption.IGNORE_CASE)) { match ->
+        val alertType = match.groupValues[1].lowercase()
+        val content = match.groupValues[2]
+        """<div class="markdown-alert markdown-alert-$alertType"><p class="markdown-alert-title">$alertType</p><p>$content</p></div>"""
+    }
     
     // Extract Onebox blocks first
     val oneboxes = mutableListOf<ContentBlock.OneboxBlock>()
@@ -188,17 +213,45 @@ fun parseHtmlToBlocks(html: String): List<ContentBlock> {
         text = text.substring(0, start) + placeholder + text.substring(end)
     }
 
+    // Extract Alert blocks
+    val alerts = mutableListOf<ContentBlock.AlertBlock>()
+    val alertRegex = Regex("""<div[^>]*class="[^"]*markdown-alert[^"]*markdown-alert-([^" ]+)[^"]*"[^>]*>|<div[^>]*data-wrap="([^"]+)"[^>]*>""", RegexOption.IGNORE_CASE)
+    val alertBlocks = extractBalancedBlocks(text, "div", alertRegex)
+    val alertReplacements = mutableListOf<Triple<Int, Int, String>>()
+    var alertIndex = 0
+    
+    for (block in alertBlocks) {
+        val type1 = try { block.matchResult.groups[1]?.value } catch (e: Exception) { null }
+        val type2 = try { block.matchResult.groups[2]?.value } catch (e: Exception) { null }
+        
+        val type = type1 ?: type2 ?: "note"
+        val content = block.innerHtml
+        
+        // Inside markdown-alerts, there is often a title <p class="markdown-alert-title">... Note</p>
+        // We can strip it to avoid duplication if we provide a standard UI
+        val cleanContentRaw = content.replace(Regex("""<p[^>]*class="[^"]*markdown-alert-title[^"]*"[^>]*>[\s\S]*?</p>"""), "")
+        val textContent = cleanTextBlock(cleanContentRaw.trim())
+        
+        alerts.add(ContentBlock.AlertBlock(type.lowercase(), textContent, cleanContentRaw))
+        alertReplacements.add(Triple(block.matchStart, block.matchEnd, "%%ALERT_${alertIndex}%%"))
+        alertIndex++
+    }
+    
+    // Apply Alert replacements in reverse order
+    for ((start, end, placeholder) in alertReplacements.reversed()) {
+        text = text.substring(0, start) + placeholder + text.substring(end)
+    }
+
     // Parse aside quote blocks and replace with placeholder
-    // We capture the attributes of the aside tag (group 1) and the content (group 2)
-    val quotePattern = Pattern.compile("""<aside([^>]+)>([\s\S]*?)</aside>""")
-    val quoteMatcher = quotePattern.matcher(text)
+    val quoteRegex = Regex("""<aside([^>]+)>""", RegexOption.IGNORE_CASE)
+    val quoteBlocks = extractBalancedBlocks(text, "aside", quoteRegex)
     val quoteReplacements = mutableListOf<Triple<Int, Int, String>>()
     var quoteIndex = 0
     val quotes = mutableListOf<ContentBlock.QuoteBlock>()
     
-    while (quoteMatcher.find()) {
-        val attributes = quoteMatcher.group(1) ?: ""
-        val content = quoteMatcher.group(2) ?: ""
+    for (block in quoteBlocks) {
+        val attributes = try { block.matchResult.groups[1]?.value ?: "" } catch (e: Exception) { "" }
+        val content = block.innerHtml
         
         // Check if it has class="...quote..."
         if (attributes.contains("quote")) {
@@ -231,7 +284,7 @@ fun parseHtmlToBlocks(html: String): List<ContentBlock> {
             val textContent = cleanTextBlock(cleanContent)
             
             quotes.add(ContentBlock.QuoteBlock(textContent, username, cleanContent))
-            quoteReplacements.add(Triple(quoteMatcher.start(), quoteMatcher.end(), "%%QUOTE_${quoteIndex}%%"))
+            quoteReplacements.add(Triple(block.matchStart, block.matchEnd, "%%QUOTE_${quoteIndex}%%"))
             quoteIndex++
         }
     }
@@ -464,7 +517,12 @@ fun parseHtmlToBlocks(html: String): List<ContentBlock> {
             blocks.add(ContentBlock.TextBlock(cleanedText))
         }
         
-        if (match.startsWith("%%CODE_BLOCK_")) {
+        if (match.startsWith("%%ALERT_")) {
+            val idx = Regex("""%%ALERT_(\d+)%%""").find(match)?.groupValues?.get(1)?.toIntOrNull()
+            if (idx != null && idx < alerts.size) {
+                blocks.add(alerts[idx])
+            }
+        } else if (match.startsWith("%%CODE_BLOCK_")) {
             // Code block placeholder
             val idx = combinedMatcher.group(2)?.toIntOrNull()
             if (idx != null && idx < codeBlocks.size) {
@@ -595,11 +653,16 @@ private fun cleanTextBlock(html: String): String {
         val linkText = matchResult.groupValues[2].trim()
         
         // Skip user mentions, empty links, and quote/lightbox image tags
-        if (linkText.isBlank() || linkText.contains("@") || url.contains("user-card") || linkText == "[image]" || linkText.contains("<img")) {
+        if (linkText.isBlank() || linkText.contains("@") || url.contains("user-card") || linkText == "[image]" || linkText == "[图片]" || linkText.contains("<img")) {
             linkText
         } else {
             "[$linkText]($url)"
         }
+    }
+    
+    // Clean raw markdown alert syntax [!note], [!question], etc. to a friendly label
+    text = text.replace(Regex("""\[!(note|tip|important|warning|caution|question|info|success|danger)\]""", RegexOption.IGNORE_CASE)) { match ->
+        "⚠ ${match.groupValues[1].replaceFirstChar { it.uppercase() }}:"
     }
     
     // Helper to process heading content - convert links to markdown, then strip other tags
@@ -758,7 +821,6 @@ fun HtmlContent(
                     }
                 }
                 is ContentBlock.ImageBlock -> {
-                    // All images (except favicons) are clickable
                     val isClickable = !block.isFavicon
                     val index = if (isClickable) allImages.indexOf(block.url) else -1
                     
@@ -787,6 +849,15 @@ fun HtmlContent(
                     CodeBlockView(
                         code = block.code,
                         language = block.language
+                    )
+                }
+                is ContentBlock.AlertBlock -> {
+                    AlertBlockView(
+                        block = block,
+                        textStyle = textStyle,
+                        textColor = textColor,
+                        onImageClick = onImageClick,
+                        onLinkClick = onLinkClick
                     )
                 }
                 is ContentBlock.EmojiBlock -> {
@@ -832,7 +903,7 @@ fun HtmlContent(
 }
 
 @Composable
-private fun QuoteBlockView(
+internal fun QuoteBlockView(
     block: ContentBlock.QuoteBlock,
     textStyle: TextStyle,
     textColor: Color,
@@ -840,18 +911,23 @@ private fun QuoteBlockView(
     onImageClick: (List<String>, Int) -> Unit = { _, _ -> },
     onLinkClick: ((String) -> Unit)? = null
 ) {
+    var isExpanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
             .padding(8.dp)
     ) {
-        // Vertical bar
+        // Vertical accent bar
         Box(
             modifier = Modifier
                 .width(4.dp)
-                .height(20.dp) // Minimum height, but column will expand
+                .heightIn(min = 20.dp)
                 .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+                .clickable { isExpanded = !isExpanded }
         )
         
         Column(
@@ -859,32 +935,100 @@ private fun QuoteBlockView(
                 .padding(start = 12.dp)
                 .weight(1f)
         ) {
-            // Username
+            // Username header (clickable to toggle)
             if (block.username.isNotEmpty()) {
                 Text(
                     text = block.username,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    modifier = Modifier
+                        .padding(bottom = 4.dp)
+                        .clickable { isExpanded = !isExpanded }
                 )
             }
             
-            // Content
-            if (block.rawHtml.isNotEmpty()) {
-                HtmlContent(
-                    html = block.rawHtml,
-                    textStyle = textStyle,
-                    textColor = textColor,
-                    onImageClick = onImageClick,
-                    onLinkClick = onLinkClick
-                )
+            if (!isExpanded) {
+                // Collapsed: simple text preview with height constraint
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 60.dp)
+                        .clip(androidx.compose.ui.graphics.RectangleShape)
+                ) {
+                    RichTextContent(
+                        text = block.content,
+                        style = textStyle,
+                        color = textColor,
+                        onLinkClick = onLinkClick,
+                        maxLines = 3,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
             } else {
-                RichTextContent(
-                    text = block.content,
-                    style = textStyle,
-                    color = textColor,
-                    onLinkClick = onLinkClick
+                // Expanded: WebView for full-fidelity HTML rendering
+                val webViewHtml = remember(block.rawHtml, isDark) {
+                    buildQuoteWebViewHtml(block.rawHtml, isDark)
+                }
+                var webViewHeight by remember { mutableStateOf(100) }
+                
+                androidx.compose.ui.viewinterop.AndroidView(
+                    factory = { ctx ->
+                        android.webkit.WebView(ctx).apply {
+                            settings.javaScriptEnabled = true
+                            settings.loadWithOverviewMode = true
+                            settings.useWideViewPort = true
+                            settings.domStorageEnabled = true
+                            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                            
+                            webViewClient = object : android.webkit.WebViewClient() {
+                                override fun shouldOverrideUrlLoading(
+                                    view: android.webkit.WebView?,
+                                    request: android.webkit.WebResourceRequest?
+                                ): Boolean {
+                                    val url = request?.url?.toString() ?: return false
+                                    if (onLinkClick != null) {
+                                        onLinkClick(url)
+                                    } else {
+                                        try {
+                                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                            ctx.startActivity(intent)
+                                        } catch (e: Exception) { e.printStackTrace() }
+                                    }
+                                    return true
+                                }
+                                
+                                override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                                    // Auto-size WebView to content height
+                                    view?.evaluateJavascript("document.body.scrollHeight") { height ->
+                                        val h = height?.toIntOrNull() ?: 100
+                                        webViewHeight = h
+                                    }
+                                }
+                            }
+                            
+                            loadDataWithBaseURL("https://linux.do", webViewHtml, "text/html", "UTF-8", null)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(webViewHeight.dp)
+                )
+            }
+
+            // Expand/Collapse toggle
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = { isExpanded = !isExpanded })
+                    .padding(top = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = if (isExpanded) 0.5f else 1f),
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
@@ -892,10 +1036,122 @@ private fun QuoteBlockView(
 }
 
 /**
+ * Build a complete HTML page for WebView rendering of quote content.
+ * Includes CSS that matches the app's theme and handles dark mode.
+ */
+private fun buildQuoteWebViewHtml(rawHtml: String, isDarkTheme: Boolean): String {
+    val bgColor = if (isDarkTheme) "#1C1B1F" else "#FAFAFA"
+    val textColor = if (isDarkTheme) "#E6E1E5" else "#1C1B1F"
+    val linkColor = if (isDarkTheme) "#D0BCFF" else "#6750A4"
+    val codeBackground = if (isDarkTheme) "#2B2930" else "#E8E0E5"
+    val alertNoteBg = if (isDarkTheme) "#1A2332" else "#E8F4FD"
+    val alertNoteBorder = "#0969DA"
+    
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+        color: $textColor;
+        background: transparent;
+        padding: 4px 0;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+    p { margin: 4px 0; }
+    a { color: $linkColor; text-decoration: none; }
+    img { max-width: 100%; height: auto; border-radius: 6px; margin: 4px 0; }
+    code { background: $codeBackground; padding: 2px 4px; border-radius: 3px; font-size: 13px; }
+    pre { background: $codeBackground; padding: 8px 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
+    pre code { background: transparent; padding: 0; }
+    blockquote { border-left: 3px solid $linkColor; padding-left: 12px; margin: 8px 0; opacity: 0.9; }
+    ul, ol { padding-left: 20px; margin: 4px 0; }
+    li { margin: 2px 0; }
+    table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+    th, td { border: 1px solid ${if (isDarkTheme) "#444" else "#ddd"}; padding: 6px 10px; text-align: left; }
+    th { background: $codeBackground; font-weight: 600; }
+    .markdown-alert { border-radius: 4px; padding: 10px 12px; margin: 8px 0; border-left: 4px solid $alertNoteBorder; background: $alertNoteBg; }
+    .markdown-alert-title { font-weight: bold; margin-bottom: 4px; }
+    .lightbox img, .d-lazyload img { cursor: pointer; }
+    details { margin: 4px 0; }
+    summary { cursor: pointer; font-weight: 500; }
+    .emoji { width: 20px; height: 20px; vertical-align: middle; }
+    aside.quote { background: ${if (isDarkTheme) "#2B2930" else "#F0EDF2"}; border-left: 3px solid $linkColor; border-radius: 4px; padding: 8px 12px; margin: 8px 0; }
+    aside.quote .title { font-weight: 600; margin-bottom: 4px; font-size: 13px; color: ${if (isDarkTheme) "#CAC4D0" else "#49454F"}; }
+    </style>
+    </head>
+    <body>$rawHtml</body>
+    </html>
+    """.trimIndent()
+}
+
+@Composable
+internal fun AlertBlockView(
+    block: ContentBlock.AlertBlock,
+    textStyle: TextStyle,
+    textColor: Color,
+    modifier: Modifier = Modifier,
+    onImageClick: (List<String>, Int) -> Unit = { _, _ -> },
+    onLinkClick: ((String) -> Unit)? = null
+) {
+    val (bgColor, borderColor, iconColor) = when (block.type) {
+        "note", "info" -> Triple(Color(0xFFE8F4FD), Color(0xFF0969DA), Color(0xFF0969DA))
+        "tip", "success" -> Triple(Color(0xFFEAF5EA), Color(0xFF1A7F37), Color(0xFF1A7F37))
+        "important" -> Triple(Color(0xFFF3E8FB), Color(0xFF8250DF), Color(0xFF8250DF))
+        "warning" -> Triple(Color(0xFFFCF4E4), Color(0xFF9A6700), Color(0xFF9A6700))
+        "caution", "danger" -> Triple(Color(0xFFFCEAEB), Color(0xFFD1242F), Color(0xFFD1242F))
+        "question" -> Triple(Color(0xFFF0EAFB), Color(0xFF6F42C1), Color(0xFF6F42C1))
+        else -> Triple(Color(0xFFE8F4FD), Color(0xFF0969DA), Color(0xFF0969DA))
+    }
+    
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(bgColor, RoundedCornerShape(4.dp))
+            .border(1.dp, borderColor.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
+            .padding(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .heightIn(min = 20.dp)
+                .background(borderColor, RoundedCornerShape(2.dp))
+        )
+        Column(
+            modifier = Modifier
+                .padding(start = 12.dp)
+                .weight(1f)
+        ) {
+            Text(
+                text = block.type.replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.labelMedium,
+                color = iconColor,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 6.dp)
+            )
+            HtmlContent(
+                html = block.html,
+                textStyle = textStyle,
+                textColor = textColor.copy(alpha = 0.9f), // Slightly darker contrast
+                onImageClick = onImageClick,
+                onLinkClick = onLinkClick
+            )
+        }
+    }
+}
+
+
+/**
  * Table view with proper layout and horizontal scrolling for wide tables
  */
 @Composable
-private fun TableView(
+internal fun TableView(
     headers: List<String>,
     rows: List<List<String>>,
     textStyle: TextStyle,
@@ -967,7 +1223,7 @@ private fun TableView(
  * Styled code block with monospace font, background, line numbers, and wrap toggle
  */
 @Composable
-private fun CodeBlockView(
+internal fun CodeBlockView(
     code: String,
     language: String,
     modifier: Modifier = Modifier
@@ -1088,7 +1344,7 @@ private fun CodeBlockView(
 }
 
 @Composable
-private fun OneboxView(
+internal fun OneboxView(
     block: ContentBlock.OneboxBlock,
     onLinkClick: ((String) -> Unit)? = null
 ) {
@@ -1217,4 +1473,61 @@ private fun cleanHtmlContentForBlock(html: String): String {
         .replace("&#39;", "'")
         .replace("&nbsp;", " ")
     return content.trim()
+}
+
+data class HtmlBlockInfo(val matchStart: Int, val matchEnd: Int, val outerHtml: String, val innerHtml: String, val matchResult: MatchResult)
+
+/**
+ * Extracts balanced HTML tags accurately without truncating on nested duplicates.
+ */
+fun extractBalancedBlocks(html: String, tagName: String, openTagRegex: Regex): List<HtmlBlockInfo> {
+    val results = mutableListOf<HtmlBlockInfo>()
+    var searchStart = 0
+    
+    while (true) {
+        val match = openTagRegex.find(html, searchStart) ?: break
+        val startIdx = match.range.first
+        val openTagEnd = match.range.last + 1
+        
+        var openCount = 1
+        var currIdx = openTagEnd
+        
+        val tagOpenRegex = Regex("<$tagName\\b", RegexOption.IGNORE_CASE)
+        val tagCloseRegex = Regex("</$tagName>", RegexOption.IGNORE_CASE)
+        
+        while (openCount > 0 && currIdx < html.length) {
+            val nextOpenMatch = tagOpenRegex.find(html, currIdx)
+            val nextCloseMatch = tagCloseRegex.find(html, currIdx)
+            
+            val openIdx = nextOpenMatch?.range?.first ?: Int.MAX_VALUE
+            val closeIdx = nextCloseMatch?.range?.first ?: Int.MAX_VALUE
+            
+            if (closeIdx == Int.MAX_VALUE) {
+                currIdx = html.length
+                break
+            }
+            
+            if (openIdx < closeIdx) {
+                openCount++
+                currIdx = nextOpenMatch!!.range.last + 1
+            } else {
+                openCount--
+                currIdx = nextCloseMatch!!.range.last + 1
+            }
+        }
+        
+        val endIdx = currIdx
+        val outerHtml = html.substring(startIdx, endIdx)
+        val closingTagLen = "</$tagName>".length
+        val innerHtml = if (endIdx >= closingTagLen && html.substring(endIdx - closingTagLen, endIdx).equals("</$tagName>", ignoreCase = true)) {
+            html.substring(openTagEnd, endIdx - closingTagLen)
+        } else {
+            html.substring(openTagEnd, endIdx)
+        }
+        
+        results.add(HtmlBlockInfo(startIdx, endIdx, outerHtml, innerHtml, match))
+        searchStart = endIdx
+    }
+    
+    return results
 }

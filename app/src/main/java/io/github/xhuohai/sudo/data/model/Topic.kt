@@ -7,8 +7,51 @@ import kotlinx.serialization.Serializable
 data class TopicListResponse(
     val users: List<User> = emptyList(),
     @SerialName("topic_list")
-    val topicList: TopicList
+    val topicList: TopicList? = null,
+    @SerialName("user_bookmark_list")
+    val userBookmarkList: UserBookmarkList? = null
 )
+
+@Serializable
+data class UserBookmarkList(
+    val bookmarks: List<BookmarkItem> = emptyList(),
+    @SerialName("more_bookmarks_url")
+    val moreBookmarksUrl: String? = null
+)
+
+@Serializable
+data class BookmarkItem(
+    val id: Int,
+    @SerialName("topic_id")
+    val topicId: Int? = null,
+    @SerialName("linked_post_number")
+    val linkedPostNumber: Int? = null,
+    val title: String = "",
+    val slug: String? = null,
+    @SerialName("category_id")
+    val categoryId: Int? = null,
+    val excerpt: String? = null,
+    @SerialName("highest_post_number")
+    val highestPostNumber: Int = 0,
+    @SerialName("bumped_at")
+    val bumpedAt: String? = null,
+    val user: User? = null
+) {
+    fun toTopic(): Topic {
+        return Topic(
+            id = topicId ?: id,
+            title = title,
+            slug = slug ?: "",
+            categoryId = categoryId,
+            excerpt = excerpt,
+            postsCount = highestPostNumber,
+            replyCount = maxOf(0, highestPostNumber - 1),
+            lastPostedAt = bumpedAt,
+            lastPosterUsername = user?.username,
+            posters = user?.let { listOf(Poster(userId = it.id, description = "Original Poster", extras = "latest")) } ?: emptyList()
+        )
+    }
+}
 
 @Serializable
 data class TopicList(

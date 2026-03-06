@@ -55,10 +55,8 @@ class MyBookmarksViewModel @Inject constructor(
 
             val currentPage = if (refresh) 0 else _uiState.value.page
             
-            topicRepository.getUserBookmarks(username, currentPage).fold(
-                onSuccess = { response ->
-                    val newTopics = response.topicList.topics
-                    val newUsers = response.users
+            topicRepository.getBookmarks(username, currentPage).fold(
+                onSuccess = { (newTopics, newUsers) ->
                     
                     _uiState.update { state ->
                         // Merge users list

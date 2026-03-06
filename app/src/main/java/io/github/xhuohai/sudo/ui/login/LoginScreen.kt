@@ -205,10 +205,50 @@ private fun LoginWebView(
                             if (cookies != null && cookies.contains("_t=")) {
                                 // Extract username via JS Bridge calling current.json natively
                                 // We do not need to fetch `/session/current.json` in JS (it causes 429 Too Many Requests).
-                                // We just need to signal Android that login succeeded, and rely on CookieManager to have the tokens.
                                 view?.evaluateJavascript(
                                     """
-                                    AndroidBridge.onLoginData("User", "");
+                                    (function() {
+                                        try {
+                                            var preloadDiv = document.getElementById('data-preloaded');
+                                            if (preloadDiv && preloadDiv.dataset.preloaded) {
+                                                var data = JSON.parse(preloadDiv.dataset.preloaded);
+                                                if (data.currentUser) {
+                                                    var user = JSON.parse(data.currentUser);
+                                                    if (user && user.username) {
+                                                        AndroidBridge.onLoginData(user.username, user.avatar_template || "");
+                                                        return;
+                                                    }
+                                                }
+                                            }
+                                        } catch(e) {
+                                            console.error("Data preload parse error:", e);
+                                        }
+                                        
+                                        // Fallback 1: DOM Elements (Ember Header)
+                                        try {
+                                            var avatarImg = document.querySelector('.current-user img.avatar');
+                                            var userLink = document.querySelector('.current-user a[href*="/u/"]');
+                                            var username = "";
+                                            var avatar = "";
+                                            if (userLink) {
+                                                var href = userLink.getAttribute('href');
+                                                var match = href.match(/\/u\/([^\/]+)/);
+                                                if (match) username = match[1];
+                                            }
+                                            if (avatarImg) {
+                                                avatar = avatarImg.getAttribute('src') || "";
+                                                if (!username) {
+                                                    username = avatarImg.getAttribute('title') || avatarImg.getAttribute('alt') || "User";
+                                                }
+                                            }
+                                            if (username) {
+                                                AndroidBridge.onLoginData(username, avatar);
+                                                return;
+                                            }
+                                        } catch(e) {}
+                                        
+                                        AndroidBridge.onLoginData("User", "");
+                                    })();
                                     """.trimIndent(), null
                                 )
                             }

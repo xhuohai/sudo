@@ -26,7 +26,7 @@ class TopicRepository @Inject constructor(
                 cookie = getCookie(),
                 page = page
             )
-            Result.success(Pair(response.topicList.topics, response.users))
+            Result.success(Pair(response.topicList?.topics ?: emptyList(), response.users))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -39,7 +39,7 @@ class TopicRepository @Inject constructor(
                 period = period,
                 page = page
             )
-            Result.success(Pair(response.topicList.topics, response.users))
+            Result.success(Pair(response.topicList?.topics ?: emptyList(), response.users))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -51,7 +51,7 @@ class TopicRepository @Inject constructor(
                 cookie = getCookie(),
                 page = page
             )
-            Result.success(Pair(response.topicList.topics, response.users))
+            Result.success(Pair(response.topicList?.topics ?: emptyList(), response.users))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -63,7 +63,7 @@ class TopicRepository @Inject constructor(
                 cookie = getCookie(),
                 page = page
             )
-            Result.success(Pair(response.topicList.topics, response.users))
+            Result.success(Pair(response.topicList?.topics ?: emptyList(), response.users))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -76,7 +76,14 @@ class TopicRepository @Inject constructor(
                 page = page,
                 cookie = getCookie()
             )
-            Result.success(Pair(response.topicList.topics, response.users))
+            
+            val bTopics = response.userBookmarkList?.bookmarks?.map { it.toTopic() } ?: emptyList()
+            val topics = response.topicList?.topics ?: bTopics
+            
+            val bUsers = response.userBookmarkList?.bookmarks?.mapNotNull { it.user } ?: emptyList()
+            val users = if (response.users.isNotEmpty()) response.users else bUsers
+            
+            Result.success(Pair(topics, users))
         } catch (e: Exception) {
             android.util.Log.e("TopicRepository", "Error fetching bookmarks for $username", e)
             Result.failure(e)
@@ -196,7 +203,7 @@ class TopicRepository @Inject constructor(
                 cookie = cookie,
                 page = page
             )
-            Result.success(Pair(response.topicList.topics, response.users))
+            Result.success(Pair(response.topicList?.topics ?: emptyList(), response.users))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -225,7 +232,7 @@ class TopicRepository @Inject constructor(
                 cookie = getCookie(),
                 page = page
             )
-            Result.success(Pair(response.topicList.topics, response.users))
+            Result.success(Pair(response.topicList?.topics ?: emptyList(), response.users))
         } catch (e: Exception) {
             Result.failure(e)
         }

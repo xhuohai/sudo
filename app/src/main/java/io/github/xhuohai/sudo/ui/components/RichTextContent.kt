@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,7 +45,9 @@ fun RichTextContent(
     modifier: Modifier = Modifier,
     style: TextStyle = LocalTextStyle.current,
     color: Color = MaterialTheme.colorScheme.onSurface,
-    onLinkClick: ((String) -> Unit)? = null
+    onLinkClick: ((String) -> Unit)? = null,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: androidx.compose.ui.text.style.TextOverflow = androidx.compose.ui.text.style.TextOverflow.Clip
 ) {
     val context = LocalContext.current
     val linkColor = MaterialTheme.colorScheme.primary
@@ -60,12 +64,14 @@ fun RichTextContent(
             text = annotatedString,
             modifier = modifier,
             style = style.copy(color = color),
+            maxLines = maxLines,
+            overflow = overflow,
             onClick = { offset ->
                 annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
                     .firstOrNull()?.let { annotation ->
                         var url = annotation.item
                         if (!url.startsWith("http")) {
-                            url = "https://linux.do$url"
+                            url = "https://linux.do\$url"
                         }
                         
                         if (onLinkClick != null) {
@@ -87,7 +93,9 @@ fun RichTextContent(
             text = annotatedString,
             modifier = modifier,
             style = style,
-            color = color
+            color = color,
+            overflow = overflow,
+            maxLines = maxLines
         )
     } else {
         Text(
@@ -95,7 +103,9 @@ fun RichTextContent(
             modifier = modifier,
             style = style,
             color = color,
-            inlineContent = inlineContent
+            inlineContent = inlineContent,
+            overflow = overflow,
+            maxLines = maxLines
         )
     }
 }
@@ -377,6 +387,23 @@ private fun computeRichTextContent(
             // Handle horizontal rules in remaining text
             val processedRemaining = remaining.replace("---", "───────────")
             append(processedRemaining)
+        }
+
+        // Apply paragraph hanging indent to list items
+        val resultingString = this.toAnnotatedString().text
+        val listRegex = Regex("""(?m)^[•*-]\s+|^[0-9]+[.)]\s+""")
+        listRegex.findAll(resultingString).forEach { match ->
+            val startIdx = match.range.first
+            val endOfLine = resultingString.indexOf('\n', startIdx)
+            val endIdx = if (endOfLine == -1) resultingString.length else endOfLine
+            
+            addStyle(
+                style = ParagraphStyle(
+                    textIndent = TextIndent(firstLine = 0.sp, restLine = 12.sp)
+                ),
+                start = startIdx,
+                end = endIdx
+            )
         }
     }
     
