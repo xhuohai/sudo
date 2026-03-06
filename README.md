@@ -1,9 +1,9 @@
 # Sudo - sudo read linux.do
 
 <div align="center">
-  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" alt="Sudo Logo" width="128"/>
+  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="Sudo Logo" width="128"/>
   <br>
-  <p><b>一个属于 linux.do 社区的现代终端窗口</b></p>
+  <p><b>一个属于 linux.do 社区的 Android 客户端</b></p>
 </div>
 
 ![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
@@ -21,7 +21,7 @@
 ## 🎨 关于设计
 
 - **命名含义**：Linux 下的最高权限指令 `sudo`。每一个 Linux 用户看到这个词都会会心一笑。隐含意义是：*你可以完全掌控这个论坛*。
-- **Logo 理念**：标准的 Android 圆角矩形应用图标，搭配经典的终端提示符 `>_`，硬核且极简。
+- **Logo 理念**：标准的 Android 圆角矩形应用图标，搭配经典的终端提示符 `>_`。
 
 ---
 
@@ -29,7 +29,7 @@
 
 * 🎨 **丝滑浏览**：完全基于 Jetpack Compose 构建，支持深色模式跟随
 * 🔐 **完整账号流**：支持平台 OAuth2 登录授权，安全保存会话
-* 📖 **沉浸式阅读**：完美适配 Discourse 语法（Alert提示框、嵌套引用、代码高亮、Onebox 链接卡片）
+* 📖 **沉浸式阅读**：适配 Discourse 语法（Alert提示框、嵌套引用、代码高亮、Onebox 链接卡片）
 * 🖼️ **优雅看图**：原生图片灯箱，支持手势缩放、双击放大
 * 💬 **便捷互动**：支持点赞、收藏，以及随时随地回复和发帖子（带便捷 Markdown 编辑工具栏）
 * ⚙️ **个人中心**：查看通知提醒、我的收藏夹
@@ -39,15 +39,13 @@
 
 ## 📸 屏幕截图
 
-> 💡 截图待补充
-
 | 首页流 | 帖子详情 |
 |:---:|:---:|
-| <img src="" width="250"/> | <img src="" width="250"/> |
+| <img src="app/src/main/screenshots/Screenshot_20260306_172203.jpg" width="250"/> | <img src="app/src/main/screenshots/Screenshot_20260306_172324.jpg" width="250"/> |
 
 | 回复编辑器 | 图片浏览 |
 |:---:|:---:|
-| <img src="" width="250"/> | <img src="" width="250"/> |
+| <img src="app/src/main/screenshots/Screenshot_20260306_172406.jpg" width="250"/> | <img src="app/src/main/screenshots/Screenshot_20260306_172524.jpg" width="250"/> |
 
 ---
 
@@ -89,5 +87,3 @@ cd sudo
 * 感谢社区另一款优秀的客户端 [FluxDO](https://linux.do/t/topic/1609212)！真的是太喜欢 FluxDO 的调调了，不仅功能大而全，而且页面设计得又萌又可爱。
 
 本着“不重复造轮子”的原则（主要是舍不得浪费大模型的 Token 😂），Sudo 的高强度开发暂时告一段落，后续会随缘佛系维护。
-
-**开源不易，如果你觉得这个“赛博包工头”经历和本项目还算有趣，欢迎点亮 ⭐️ Star！**
